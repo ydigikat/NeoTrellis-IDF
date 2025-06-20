@@ -24,9 +24,13 @@ esp_err_t nt_read_keys(struct nt_dev *dev, key_event_t *events, uint8_t *count);
 void nt_key_to_xy(uint8_t key, uint8_t *x, uint8_t *y);
 uint8_t nt_xy_to_key(uint8_t x, uint8_t y);
 ```
+### Example Code
+See the example app_main() in the main repository. 
 
 ### Using the keypad interrupt
-The hardware interrupt from the keypad is enabled in the driver.  To use this you need to connect the interrupt line to a free GPIO pin on the ESP32 and optionally provide an ISR.
+The hardware interrupt from the keypad is enabled in the driver although this is not used in the example.  
+
+To use this you need to connect the interrupt line to a free GPIO pin on the ESP32 and optionally provide an ISR.
 
 The interrupt line is active low, pulled high by the internal pullup, so we're looking for the falling edge.
 
