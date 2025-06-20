@@ -122,6 +122,9 @@ esp_err_t nt_refresh(struct nt_dev *dev);
 esp_err_t nt_set_colour(struct nt_dev *dev, uint8_t button, uint8_t red, uint8_t green, uint8_t blue, uint8_t brightness);
 esp_err_t nt_read_keys(struct nt_dev *dev, key_event_t *events, uint8_t *count);
 
+void nt_key_to_xy(uint8_t key, uint8_t *x, uint8_t *y);
+uint8_t nt_xy_to_key(uint8_t x, uint8_t y);
+
 #ifdef __cplusplus
 }
 #endif

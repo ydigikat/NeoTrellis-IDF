@@ -118,6 +118,41 @@ esp_err_t nt_read_keys(struct nt_dev *dev, key_event_t *events, uint8_t *count)
 }
 
 /**
+ * \brief converts an x,y pair to a key number
+ * \param x x coordinate
+ * \param y y coordinate
+ * \return key number
+ */
+uint8_t nt_xy_to_key(uint8_t x, uint8_t y)
+{
+    if (x >= NT_COLS || y >= NT_ROWS) 
+    {
+        return 0xFF; /* Bad key */
+    }
+    return y * NT_COLS + x;
+}
+
+/**
+ * \brief converts a key number to x,y pair
+ * \param key the key number
+ * \param x pointer to hold x coordinate
+ * \param y pointer to hold y coordinate 
+ */
+void nt_key_to_xy(uint8_t key, uint8_t *x, uint8_t *y) 
+{
+    if (key >= NT_KEYS || !x || !y) 
+    {
+        if (x) *x = 0xFF;
+        if (y) *y = 0xFF;
+        return;
+    }
+    *x = key % NT_COLS;
+    *y = key / NT_COLS;
+}
+
+
+
+/**
  * \brief initialises the SeeSaw device.
  * \details This sets up the SeeSaw MCU on the device:
  *          1. Adds it to i2c and probes for presence.
@@ -162,6 +197,7 @@ static esp_err_t init(struct nt_dev *dev, i2c_master_bus_handle_t bus_handle)
         nt_set_colour(dev, key, 0x00, 0x00, 0x00, 0x00);
         ESP_RETURN_ON_ERROR(write(dev, KeyBase, KeyEnableEvent, ((uint8_t[]){TO_SEESAW_KEY(key), state_reg}), 2),TAG,"FAILED: enable event for key %d",key);                     
     }
+    ESP_RETURN_ON_ERROR(write(dev,KeyBase,KeySetInt,((uint8_t[]){0x01}),1),TAG,"FAILED: setting interrupt enable");
     ESP_LOGI(TAG, "PASSED: keypad configured");
 
     /* refresh the hardware */
