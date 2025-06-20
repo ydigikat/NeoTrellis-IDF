@@ -26,12 +26,13 @@ uint8_t nt_xy_to_key(uint8_t x, uint8_t y);
 ```
 
 ### Using the keypad interrupt
-The hardware interrupt from the keypad is enabled in the driver.  To use this you need to connect the interrupt line to a free GPIO pin on the ESP32 and provide the ISR.
+The hardware interrupt from the keypad is enabled in the driver.  To use this you need to connect the interrupt line to a free GPIO pin on the ESP32 and optionally provide an ISR.
 
 The interrupt line is active low, pulled high by the internal pullup, so we're looking for the falling edge.
 
-The snippet below provides a skeletal interrupt handler, note the point about the interrupt staying set until the FIFO is read which allows polling of the interrupt to 
-be used rather than an ISR if so desired.
+The snippet below provides a skeletal interrupt handler. 
+
+Note the point about the interrupt staying set until the FIFO is read which allows polling the state of the interrupt pin to be used rather than an ISR if so desired.
 
 ```c
 #include "freertos/FreeRTOS.h"
