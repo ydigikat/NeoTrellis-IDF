@@ -121,6 +121,8 @@ esp_err_t nt_init(struct nt_dev *dev, i2c_master_bus_handle_t bus_handle, uint8_
 esp_err_t nt_refresh(struct nt_dev *dev);
 esp_err_t nt_set_colour(struct nt_dev *dev, uint8_t button, uint8_t red, uint8_t green, uint8_t blue, uint8_t brightness);
 esp_err_t nt_read_keys(struct nt_dev *dev, key_event_t *events, uint8_t *count);
+esp_err_t nt_enable_key_event(struct nt_dev *dev, uint8_t key, enum params event_type);
+esp_err_t nt_enable_all_event(struct nt_dev *dev, enum params event_type);
 
 void nt_key_to_xy(uint8_t key, uint8_t *x, uint8_t *y);
 uint8_t nt_xy_to_key(uint8_t x, uint8_t y);

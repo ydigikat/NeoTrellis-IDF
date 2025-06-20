@@ -95,6 +95,50 @@ esp_err_t nt_set_colour(struct nt_dev *dev, uint8_t button, uint8_t red, uint8_t
     return write(dev, PixelBase, PixelSetColour, data, 5);
 }
 
+/**
+ * \brief enables event for a specific key
+ * \param dev the device instance
+ * \param key the key number (1-16)
+ * \param event_type KeyFall, KeyRise, KeyLow, KeyHigh
+ * \return esp_err_t
+ */
+esp_err_t nt_enable_key_event(struct nt_dev *dev, uint8_t key, enum params event_type)
+{
+    ESP_DEBUG_ASSERT(dev);
+
+    uint8_t state_reg = 0;
+    state_reg |= 0x01 | 0x01 << (event_type + 1);
+
+    ESP_RETURN_ON_ERROR(write(dev, KeyBase, KeyEnableEvent, ((uint8_t[]){TO_SEESAW_KEY(key), state_reg}), 2),TAG,"FAILED: enable event for key %d",key);                     
+    return ESP_OK;
+}
+
+/**
+ * \brief enables event for all keys
+ * \param dev the device instance
+ * \param event_type KeyFall, KeyRise, KeyLow, KeyHigh
+ * \return esp_err_t
+ */
+esp_err_t nt_enable_all_event(struct nt_dev *dev, enum params event_type)
+{
+    ESP_DEBUG_ASSERT(dev);
+
+    for(int key = 0; key < NT_KEYS; key++)
+    {
+        ESP_RETURN_ON_ERROR(nt_enable_key_event(dev, key, event_type),TAG,"FAILED: setting all key events");
+    }
+
+    return ESP_OK;
+}
+
+
+/**
+ * \brief read the key events from the FIFO
+ * \param dev the device instance
+ * \param events buffer to hold events
+ * \param count the number of events to read on entry, the number of events read on exit.
+ * \return esp_err_t
+ */
 esp_err_t nt_read_keys(struct nt_dev *dev, key_event_t *events, uint8_t *count)
 {
     ESP_DEBUG_ASSERT(dev);
@@ -159,7 +203,7 @@ void nt_key_to_xy(uint8_t key, uint8_t *x, uint8_t *y)
  *          2. Software resets the MCU.
  *          3. Verifies the presence of the expected MCU.
  *          4. Configures the neopixel string (LEDs).
- *          5. Configures the keypad and key events.
+ *          5. Enables the keypad interrupt.
  * \param dev the device instance
  * \return esp_err_t code
  */
@@ -190,15 +234,12 @@ static esp_err_t init(struct nt_dev *dev, i2c_master_bus_handle_t bus_handle)
     ESP_RETURN_ON_ERROR(write(dev, PixelBase, PixelSetSpeed, ((uint8_t[]){PixelSpeed}), 1), TAG, "FAILED: reset");
     ESP_LOGI(TAG, "PASSED: neo-pixel string configured");
 
-    uint8_t state_reg = 0;
-    state_reg |= 0x01 | 0x01 << (KeyRise + 1) | 0x01 << (KeyFall + 1);
-
-    /* Set up keypad */
+    /* Clear */
     for (int key = 0; key < 16; key++)
     {
-        nt_set_colour(dev, key, 0x00, 0x00, 0x00, 0x00);
-        ESP_RETURN_ON_ERROR(write(dev, KeyBase, KeyEnableEvent, ((uint8_t[]){TO_SEESAW_KEY(key), state_reg}), 2),TAG,"FAILED: enable event for key %d",key);                     
+        nt_set_colour(dev, key, 0x00, 0x00, 0x00, 0x00);        
     }
+
     ESP_RETURN_ON_ERROR(write(dev,KeyBase,KeySetInt,((uint8_t[]){0x01}),1),TAG,"FAILED: setting interrupt enable");
     ESP_LOGI(TAG, "PASSED: keypad configured");
 

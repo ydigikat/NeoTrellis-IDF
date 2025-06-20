@@ -19,7 +19,8 @@ esp_err_t nt_set_colour(struct nt_dev *dev, uint8_t button, uint8_t red, uint8_t
 esp_err_t nt_refresh(struct nt_dev *dev);
 
 /* Keypad events */
-esp_err_t nt_enable_event(struct nt_dev *dev, key_event_t event);
+esp_err_t nt_enable_key_event(struct nt_dev *dev, uint8_t key, enum params event_type);
+esp_err_t nt_enable_all_event(struct nt_dev *dev, enum params event_type);
 esp_err_t nt_read_keys(struct nt_dev *dev, key_event_t *events, uint8_t *count);
 
 /* Utility */
@@ -59,11 +60,10 @@ static void IRAM_ATTR trellis_int_isr_handler(void* arg)
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
     /* Signal the main that we've had key events*/
+    /* You might also use a FreeRTOS queue or semaphore here to notify a task */
     keys_pending = true;
 
-    /* You might also use a FreeRTOS queue or semaphore here to notify a task */
-    ESP_EARLY_LOGI(TAG, "NeoTrellis interrupt triggered");
-
+    
     /* Yield to any higher priority task */
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }

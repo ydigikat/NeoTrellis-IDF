@@ -73,6 +73,15 @@ static void set_colours(void)
 
     }
     nt_refresh(&neotrellis_dev);
+    vTaskDelay(pdMS_TO_TICKS(2000));
+
+    /* Clear colours for button press testing */
+    for (uint8_t key = 0; key < NT_KEYS; key++)
+    {
+        nt_set_colour(&neotrellis_dev, key, 255, 255, 255, 32);
+    }
+    nt_refresh(&neotrellis_dev);
+
 }
 
 /**
@@ -96,6 +105,11 @@ void app_main(void)
         return;
     }
 
+    /* Register the key events we're interested in */
+    ret = nt_enable_all_event(&neotrellis_dev,KeyRise);
+    ret = nt_enable_all_event(&neotrellis_dev,KeyFall);
+
+    /* Set the backlighting */
     set_colours();
 
     key_event_t events[16];
@@ -113,7 +127,20 @@ void app_main(void)
             {
                 ESP_LOGI(TAG, "Raw event[%d]: seesaw key:%d, trellis key: %d, edge: %d",
                          i, events[i].bit.num, FROM_SEESAW_KEY(events[i].bit.num), events[i].bit.edge);                         
+                
+                if(events[i].bit.edge == KeyRise)
+                {
+                    /* Purple key press*/
+                    nt_set_colour(&neotrellis_dev, FROM_SEESAW_KEY(events[i].bit.num),128,0,128,64);                    
+                }
+                else
+                {
+                    /* Back to white on release */
+                    nt_set_colour(&neotrellis_dev, FROM_SEESAW_KEY(events[i].bit.num),255,255,255,15);                    
+                }               
             }
+
+            nt_refresh(&neotrellis_dev);
         }
 
         vTaskDelay(pdMS_TO_TICKS(10));
