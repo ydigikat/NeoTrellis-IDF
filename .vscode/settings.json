@@ -1,0 +1,7 @@
+{
+    "idf.flashType": "UART",
+    "idf.port": "/dev/ttyACM0",
+    "files.associations": {
+        "esp_check.h": "c"
+    }
+}
