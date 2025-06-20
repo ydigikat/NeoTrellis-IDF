@@ -158,6 +158,8 @@ void nt_key_to_xy(uint8_t key, uint8_t *x, uint8_t *y)
  *          1. Adds it to i2c and probes for presence.
  *          2. Software resets the MCU.
  *          3. Verifies the presence of the expected MCU.
+ *          4. Configures the neopixel string (LEDs).
+ *          5. Configures the keypad and key events.
  * \param dev the device instance
  * \return esp_err_t code
  */
