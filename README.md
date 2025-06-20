@@ -36,8 +36,8 @@ The interrupt line is active low, pulled high by the internal pullup, so we're l
 
 The snippet below provides a skeletal interrupt handler using a simple flag to indicate a key press interrupt.
 
-Note the point about the interrupt staying set until the FIFO is read which allows polling the state of the interrupt pin to be used rather than an ISR if so desired, this
-approach is more correctly referred to as event state polling.
+Note the point about the interrupt staying set until the FIFO is read which allows an alternative approach whereby the state of the interrupt pin is polled continually rather than triggering an ISR, this
+approach is more correctly referred to as event based polling.
 
 ```c
 #include "freertos/FreeRTOS.h"
