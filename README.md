@@ -80,12 +80,17 @@ void app_main(void)
 {  
     setup_neotrellis_int_gpio();
 
-    /* Initialise the neo-trellis etc here (see example code)*/
+    /* Initialise the neo-trellis etc here (see example app_main() in repo)*/
+
+    /* nt_init(...) etc */
+                
 
     while (1)
     {
         /* Read the key FIFO here, this is important as the read causes the
            SeeSaw firmware to clear the interrupt which otherwise remains set */
+
+        /* nt_read_keys(...)  etc */
 
         vTaskDelay(pdMS_TO_TICKS(100));
     }
