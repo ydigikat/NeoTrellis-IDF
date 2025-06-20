@@ -25,3 +25,65 @@ void nt_key_to_xy(uint8_t key, uint8_t *x, uint8_t *y);
 uint8_t nt_xy_to_key(uint8_t x, uint8_t y);
 ```
 
+### Using the keypad interrupt
+The hardware interrupt from the keypad is enabled in the driver.  To use this you need to connect the interrupt line to a free GPIO pin on the ESP32 and provide the ISR.
+
+The interrupt line is active low, pulled high by the internal pullup, so we're looking for the falling edge.
+
+The snippet below provides a skeletal interrupt handler, note the point about the interrupt staying set until the FIFO is read which allows polling of the interrupt to 
+be used rather than an ISR if so desired.
+
+```c
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "driver/gpio.h"
+#include "esp_log.h"
+
+#define NEOTRELLIS_INT_GPIO 4  
+#define ESP_INTR_FLAG_DEFAULT 0
+
+static const char *TAG = "Interrupt Example";
+
+/* ISR: keep short, defer processing */
+static void IRAM_ATTR trellis_int_isr_handler(void* arg)
+{
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    /* You might use a FreeRTOS queue or semaphore here to notify a task */
+    ESP_EARLY_LOGI(TAG, "NeoTrellis interrupt triggered");
+
+    /* Yield to any higher priority task */
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+void setup_neotrellis_int_gpio()
+{
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << NEOTRELLIS_INT_GPIO),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,     /* INT is active-low; enable pull-up */
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_NEGEDGE        /* Trigger on falling edge (HIGH → LOW) */
+    };
+    gpio_config(&io_conf);
+
+    gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+    gpio_isr_handler_add(NEOTRELLIS_INT_GPIO, trellis_int_isr_handler, NULL);    
+}
+
+void app_main(void)
+{  
+    setup_neotrellis_int_gpio();
+
+    /* Initialise the neo-trellis etc here (see example code)*/
+
+    while (1)
+    {
+        /* Read the key FIFO here, this is important as the read causes the
+           SeeSaw firmware to clear the interrupt which otherwise remains set */
+
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+```
+
