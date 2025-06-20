@@ -44,7 +44,7 @@ Note the point about the interrupt staying set until the FIFO is read which allo
 #include "driver/gpio.h"
 #include "esp_log.h"
 
-#define NEOTRELLIS_INT_GPIO 4  
+#define NEOTRELLIS_INT_GPIO 4    /* This can be pretty much any pin, but avoid the strapping pins */
 #define ESP_INTR_FLAG_DEFAULT 0
 
 static const char *TAG = "Interrupt Example";
