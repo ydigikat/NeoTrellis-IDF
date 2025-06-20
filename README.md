@@ -25,9 +25,9 @@ void nt_key_to_xy(uint8_t key, uint8_t *x, uint8_t *y);
 uint8_t nt_xy_to_key(uint8_t x, uint8_t y);
 ```
 ### Example Code
-See the example app_main() in the main repository. 
+See the example ```app_main()``` in the driver code repository for basic usage. 
 
-### Using the keypad interrupt
+### Interrupts
 The hardware interrupt from the keypad is enabled in the driver although this is not used in the example.  
 
 To use this you need to connect the interrupt line to a free GPIO pin on the ESP32 and optionally provide an ISR.
