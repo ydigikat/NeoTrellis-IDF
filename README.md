@@ -34,7 +34,7 @@ To use this you need to connect the interrupt line to a free GPIO pin on the ESP
 
 The interrupt line is active low, pulled high by the internal pullup, so we're looking for the falling edge.
 
-The snippet below provides a skeletal interrupt handler. 
+The snippet below provides a skeletal interrupt handler using a simple flag to indicate a key press interrupt.
 
 Note the point about the interrupt staying set until the FIFO is read which allows polling the state of the interrupt pin to be used rather than an ISR if so desired.
 
@@ -48,13 +48,17 @@ Note the point about the interrupt staying set until the FIFO is read which allo
 #define ESP_INTR_FLAG_DEFAULT 0
 
 static const char *TAG = "Interrupt Example";
+static volatile bool keys_pending;
 
 /* ISR: keep short, defer processing */
 static void IRAM_ATTR trellis_int_isr_handler(void* arg)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-    /* You might use a FreeRTOS queue or semaphore here to notify a task */
+    /* Signal the main that we've had key events*/
+    keys_pending = true;
+
+    /* You might also use a FreeRTOS queue or semaphore here to notify a task */
     ESP_EARLY_LOGI(TAG, "NeoTrellis interrupt triggered");
 
     /* Yield to any higher priority task */
@@ -80,6 +84,8 @@ void app_main(void)
 {  
     setup_neotrellis_int_gpio();
 
+    keys_pending = false;
+
     /* Initialise the neo-trellis etc here (see example app_main() in repo)*/
 
     /* nt_init(...) etc */
@@ -90,7 +96,12 @@ void app_main(void)
         /* Read the key FIFO here, this is important as the read causes the
            SeeSaw firmware to clear the interrupt which otherwise remains set */
 
-        /* nt_read_keys(...)  etc */
+        if(keys_pending)
+        {
+            /* nt_read_keys(...)  etc */
+            
+            keys_pending = false;
+        }
 
         vTaskDelay(pdMS_TO_TICKS(100));
     }
