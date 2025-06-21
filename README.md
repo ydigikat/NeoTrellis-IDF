@@ -4,7 +4,7 @@ This is an ESP IDF "C" driver for the NeoTrellis 4x4 RGB.
 
 The code is largely self-explanatory exporting an API trimmed to bare minimum to handle my own use cases. 
 
-The driver is stateless meaning, for example,  that you cannot ask it what colour an LED is currently displaying - you need to manage that yourself.
+The driver is stateless meaning, for example, that you can set but not get the colour of a key.
 
 The example targets the ESP32-S3 but will work with most other variants.
 
