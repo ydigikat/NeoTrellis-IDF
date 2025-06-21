@@ -16,6 +16,7 @@ esp_err_t nt_init(struct nt_dev *dev, i2c_master_bus_handle_t bus_handle, uint8_
 
 /* LED colours */
 esp_err_t nt_set_colour(struct nt_dev *dev, uint8_t button, uint8_t red, uint8_t green, uint8_t blue, uint8_t brightness);
+esp_err_t nt_set_colour_from_rgb(struct nt_dev *dev, uint8_t button, uint32_t rgb, uint8_t brightness);
 esp_err_t nt_refresh(struct nt_dev *dev);
 
 /* Keypad events */

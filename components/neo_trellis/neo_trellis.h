@@ -46,7 +46,7 @@
 #define NT_KEYS (16) /* Number of keys (and NeoPixels) */
 
 /* Register base addresses */
-enum base
+enum nt_base
 {
   SeeSawBase = 0x00,
   PixelBase = 0x0E,
@@ -54,7 +54,7 @@ enum base
 };
 
 /* Commands (registers)*/
-enum cmd
+enum nt_cmd
 {
   SeeSawGetID = 0x01,
   SeeSawReset = 0x7F,
@@ -71,16 +71,45 @@ enum cmd
 };
 
 /* Command params */
-enum params
+enum nt_param
 {
   SeeSawId = 0x55,
   PixelPin = 0x03,
   PixelType = 0x52,
   PixelSpeed = 0x01,
-  KeyHigh = 0x00,
-  KeyLow = 0x01,
-  KeyFall = 0x02,
-  KeyRise = 0x03
+};
+
+enum nt_event
+{
+  KeyDown = 0x00,
+  KeyUp = 0x01,
+  KeyPressed = 0x02,
+  KeyReleased = 0x03
+};
+
+/* Some useful basic colours */
+enum nt_colour
+{
+  RGB_BLACK = 0x000000,
+  RGB_WHITE = 0xFFFFFF,
+  RGB_RED = 0xFF0000,
+  RGB_LIME = 0x00FF00,
+  RGB_BLUE = 0x0000FF,
+  RGB_YELLOW = 0xFFFF00,
+  RGB_CYAN = 0x00FFFF,
+  RGB_MAGENTA = 0xFF00FF,
+  RGB_SILVER = 0xC0C0C0,
+  RGB_GRAY = 0x808080,
+  RGB_MAROON = 0x800000,
+  RGB_OLIVE = 0x808000,
+  RGB_GREEN = 0x008000,
+  RGB_PURPLE = 0x800080,
+  RGB_TEAL = 0x008080,
+  RGB_NAVY = 0x000080,
+  RGB_ORANGE = 0xFFA500,
+  RGB_PINK = 0xFFC0CB,
+  RGB_GOLD = 0xFFD700,
+  RGB_SKY_BLUE = 0x87CEEB
 };
 
 /* Key event type */
@@ -88,26 +117,26 @@ typedef union
 {
   struct
   {
-    uint8_t edge : 2; /* Edge? */
-    uint8_t num : 6;  /* Which key */
+    uint8_t edge : 2;
+    uint8_t key : 6;
   } bit;
   uint8_t reg;
 } key_event_t;
 
-/* 
-* It looks like the internal seesaw key numbering is for a 16x4 device (AdaFruit M4?). This
-* confused me for quite some time!
-*
-* Trellis Key | SeeSaw Key |
-* 0-3         | 0-3        |
-* 4-7         | 8-11       |
-* 8-11        | 16-19      |
-* 12-15       | 24-27      |
-* 
-* The 2 macros below handle this backwards and forwards mapping.
-*/
-#define TO_SEESAW_KEY(x) (((x) / 4) * 8 + ((x) % 4))
-#define FROM_SEESAW_KEY(x) (((x) / 8) * 4 + ((x) % 8))
+/*
+ * It looks like the internal seesaw key numbering is for a 16x4 device (AdaFruit M4?). This
+ * confused me for a while!
+ *
+ * Trellis Key | SeeSaw Key |
+ * 0-3         | 0-3        |
+ * 4-7         | 8-11       |
+ * 8-11        | 16-19      |
+ * 12-15       | 24-27      |
+ *
+ * The 2 macros below handle this backwards and forwards mapping.
+ */
+#define TRELLIS_KEY_TO_SEESAW(x) (((x) / 4) * 8 + ((x) % 4))
+#define SEESAW_KEY_TO_TRELLIS(x) (((x) / 8) * 4 + ((x) % 8))
 
 /* Device instance structure */
 struct nt_dev
@@ -118,11 +147,12 @@ struct nt_dev
 
 /* API */
 esp_err_t nt_init(struct nt_dev *dev, i2c_master_bus_handle_t bus_handle, uint8_t i2c_address);
-esp_err_t nt_refresh(struct nt_dev *dev);
+esp_err_t nt_display(struct nt_dev *dev);
 esp_err_t nt_set_colour(struct nt_dev *dev, uint8_t button, uint8_t red, uint8_t green, uint8_t blue, uint8_t brightness);
+esp_err_t nt_set_colour_rgb(struct nt_dev *dev, uint8_t button, uint32_t rgb, uint8_t brightness);
 esp_err_t nt_read_keys(struct nt_dev *dev, key_event_t *events, uint8_t *count);
-esp_err_t nt_enable_key_event(struct nt_dev *dev, uint8_t key, enum params event_type);
-esp_err_t nt_enable_all_event(struct nt_dev *dev, enum params event_type);
+esp_err_t nt_enable_event(struct nt_dev *dev, uint8_t key, enum nt_event event_type);
+esp_err_t nt_enable_all_event(struct nt_dev *dev, enum nt_event event_type);
 
 void nt_key_to_xy(uint8_t key, uint8_t *x, uint8_t *y);
 uint8_t nt_xy_to_key(uint8_t x, uint8_t y);

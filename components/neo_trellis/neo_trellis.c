@@ -31,8 +31,8 @@ static const char *TAG = "neo_trellis";
 static esp_err_t init(struct nt_dev *dev, i2c_master_bus_handle_t bus_handle);
 static esp_err_t probe(struct nt_dev *dev, i2c_master_bus_handle_t bus_handle);
 static esp_err_t verify(struct nt_dev *dev);
-static esp_err_t write(struct nt_dev *dev, enum base base, enum cmd cmd, uint8_t *data, size_t len);
-static esp_err_t read(struct nt_dev *dev, enum base base, enum cmd cmd, uint8_t *data, size_t len, uint32_t delay_us);
+static esp_err_t write(struct nt_dev *dev, enum nt_base base, enum nt_cmd cmd, uint8_t *data, size_t len);
+static esp_err_t read(struct nt_dev *dev, enum nt_base base, enum nt_cmd cmd, uint8_t *data, size_t len, uint32_t delay_us);
 
 /**
  * \brief initialises the AdaFruit NeoTrellis keypad
@@ -60,7 +60,7 @@ esp_err_t nt_init(struct nt_dev *dev, i2c_master_bus_handle_t bus_handle, uint8_
  *          signals the data to be latched into the pixels.
  * \param dev the device instance
  */
-esp_err_t nt_refresh(struct nt_dev *dev)
+esp_err_t nt_display(struct nt_dev *dev)
 {
     ESP_DEBUG_ASSERT(dev);
 
@@ -76,7 +76,7 @@ esp_err_t nt_refresh(struct nt_dev *dev)
 /**
  * \brief sets the backlight colour for a button
  * \details note that this sets the colour but does not refresh the hardware, you must make
- *          a subsequent call to nt_refresh() for this.  The device uses GRB format, 3 bytes
+ *          a subsequent call to nt_display() for this.  The device uses GRB format, 3 bytes
  *          per LED.
  * \param dev the device instance
  * \param button the button number
@@ -96,41 +96,56 @@ esp_err_t nt_set_colour(struct nt_dev *dev, uint8_t button, uint8_t red, uint8_t
 }
 
 /**
+ * \brief sets the backlight from a packed RGB value
+ * \param dev the device instance
+ * \param button the button number
+ * \param rgb the RGB value
+ * \param brightness 0x00 -> 0xFF
+ */
+esp_err_t nt_set_colour_rgb(struct nt_dev *dev, uint8_t button, uint32_t rgb, uint8_t brightness)
+{
+    uint8_t red = (rgb >> 16) & 0xFF;
+    uint8_t green = (rgb >> 8) & 0xFF;
+    uint8_t blue = rgb & 0xFF;
+
+    return nt_set_colour(dev, button, red, green, blue, brightness);
+}
+
+/**
  * \brief enables event for a specific key
  * \param dev the device instance
  * \param key the key number (1-16)
- * \param event_type KeyFall, KeyRise, KeyLow, KeyHigh
+ * \param event_type KeyFall, KeyRise, KeyLow, KeyPressed
  * \return esp_err_t
  */
-esp_err_t nt_enable_key_event(struct nt_dev *dev, uint8_t key, enum params event_type)
+esp_err_t nt_enable_event(struct nt_dev *dev, uint8_t key, enum nt_event event_type)
 {
     ESP_DEBUG_ASSERT(dev);
 
     uint8_t state_reg = 0;
     state_reg |= 0x01 | 0x01 << (event_type + 1);
 
-    ESP_RETURN_ON_ERROR(write(dev, KeyBase, KeyEnableEvent, ((uint8_t[]){TO_SEESAW_KEY(key), state_reg}), 2),TAG,"FAILED: enable event for key %d",key);                     
+    ESP_RETURN_ON_ERROR(write(dev, KeyBase, KeyEnableEvent, ((uint8_t[]){TRELLIS_KEY_TO_SEESAW(key), state_reg}), 2), TAG, "FAILED: enable event for key %d", key);
     return ESP_OK;
 }
 
 /**
  * \brief enables event for all keys
  * \param dev the device instance
- * \param event_type KeyFall, KeyRise, KeyLow, KeyHigh
+ * \param event_type KeyFall, KeyRise, KeyLow, KeyPressed
  * \return esp_err_t
  */
-esp_err_t nt_enable_all_event(struct nt_dev *dev, enum params event_type)
+esp_err_t nt_enable_all_event(struct nt_dev *dev, enum nt_event event_type)
 {
     ESP_DEBUG_ASSERT(dev);
 
-    for(int key = 0; key < NT_KEYS; key++)
+    for (int key = 0; key < NT_KEYS; key++)
     {
-        ESP_RETURN_ON_ERROR(nt_enable_key_event(dev, key, event_type),TAG,"FAILED: setting all key events");
+        ESP_RETURN_ON_ERROR(nt_enable_event(dev, key, event_type), TAG, "FAILED: setting all key events");
     }
 
     return ESP_OK;
 }
-
 
 /**
  * \brief read the key events from the FIFO
@@ -169,7 +184,7 @@ esp_err_t nt_read_keys(struct nt_dev *dev, key_event_t *events, uint8_t *count)
  */
 uint8_t nt_xy_to_key(uint8_t x, uint8_t y)
 {
-    if (x >= NT_COLS || y >= NT_ROWS) 
+    if (x >= NT_COLS || y >= NT_ROWS)
     {
         return 0xFF; /* Bad key */
     }
@@ -180,21 +195,21 @@ uint8_t nt_xy_to_key(uint8_t x, uint8_t y)
  * \brief converts a key number to x,y pair
  * \param key the key number
  * \param x pointer to hold x coordinate
- * \param y pointer to hold y coordinate 
+ * \param y pointer to hold y coordinate
  */
-void nt_key_to_xy(uint8_t key, uint8_t *x, uint8_t *y) 
+void nt_key_to_xy(uint8_t key, uint8_t *x, uint8_t *y)
 {
-    if (key >= NT_KEYS || !x || !y) 
+    if (key >= NT_KEYS || !x || !y)
     {
-        if (x) *x = 0xFF;
-        if (y) *y = 0xFF;
+        if (x)
+            *x = 0xFF;
+        if (y)
+            *y = 0xFF;
         return;
     }
     *x = key % NT_COLS;
     *y = key / NT_COLS;
 }
-
-
 
 /**
  * \brief initialises the SeeSaw device.
@@ -223,8 +238,8 @@ static esp_err_t init(struct nt_dev *dev, i2c_master_bus_handle_t bus_handle)
     ESP_LOGI(TAG, "PASSED: reset and probe sequence");
 
     /* Verify the MCU on the end of the wire */
-    ESP_RETURN_ON_ERROR(verify(dev),TAG,"FAILED: verification");
-    ESP_LOGI(TAG,"PASSED: verification");
+    ESP_RETURN_ON_ERROR(verify(dev), TAG, "FAILED: verification");
+    ESP_LOGI(TAG, "PASSED: verification");
 
     /* Configure the LEDs */
     uint8_t buf_bytes = 3 * NT_KEYS; /* 3 bytes for each key's neopixel (48) */
@@ -237,14 +252,14 @@ static esp_err_t init(struct nt_dev *dev, i2c_master_bus_handle_t bus_handle)
     /* Clear */
     for (int key = 0; key < 16; key++)
     {
-        nt_set_colour(dev, key, 0x00, 0x00, 0x00, 0x00);        
+        nt_set_colour(dev, key, 0x00, 0x00, 0x00, 0x00);
     }
 
-    ESP_RETURN_ON_ERROR(write(dev,KeyBase,KeySetInt,((uint8_t[]){0x01}),1),TAG,"FAILED: setting interrupt enable");
+    ESP_RETURN_ON_ERROR(write(dev, KeyBase, KeySetInt, ((uint8_t[]){0x01}), 1), TAG, "FAILED: setting interrupt enable");
     ESP_LOGI(TAG, "PASSED: keypad configured");
 
     /* refresh the hardware */
-    nt_refresh(dev);
+    nt_display(dev);
 
     return ESP_OK;
 }
@@ -307,7 +322,7 @@ static esp_err_t probe(struct nt_dev *dev, i2c_master_bus_handle_t bus_handle)
  * \param data command data
  * \param len length of the command data
  */
-static esp_err_t write(struct nt_dev *dev, enum base base, enum cmd cmd, uint8_t data[], size_t len)
+static esp_err_t write(struct nt_dev *dev, enum nt_base base, enum nt_cmd cmd, uint8_t data[], size_t len)
 {
     ESP_DEBUG_ASSERT(dev);
     ESP_DEBUG_ASSERT(len <= 6);
@@ -327,7 +342,7 @@ static esp_err_t write(struct nt_dev *dev, enum base base, enum cmd cmd, uint8_t
  * \param len the size of the data buffer
  * \param delay delay to place between sending the command and receiving response.
  */
-static esp_err_t read(struct nt_dev *dev, enum base base, enum cmd cmd, uint8_t *data, size_t len, uint32_t delay)
+static esp_err_t read(struct nt_dev *dev, enum nt_base base, enum nt_cmd cmd, uint8_t *data, size_t len, uint32_t delay)
 {
     ESP_DEBUG_ASSERT(dev);
     ESP_DEBUG_ASSERT(data);

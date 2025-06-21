@@ -63,25 +63,32 @@ static void set_colours(void)
 {
     for (uint8_t key = 0; key < NT_KEYS; key++)
     {
-         uint8_t row = key / 4;
-        switch(row) {
-        case 0: nt_set_colour(&neotrellis_dev, key, 255, 0, 0, 0x20); break;    // Red
-        case 1: nt_set_colour(&neotrellis_dev, key, 0, 255, 0, 0x20); break;    // Green  
-        case 2: nt_set_colour(&neotrellis_dev, key, 0, 0, 255, 0x20); break;    // Blue
-        case 3: nt_set_colour(&neotrellis_dev, key, 255, 255, 0, 0x20); break;  // Yellow
+        uint8_t row = key / 4;
+        switch (row)
+        {
+        case 0:
+            nt_set_colour_rgb(&neotrellis_dev, key, RGB_RED, 0x20);
+            break;
+        case 1:
+            nt_set_colour_rgb(&neotrellis_dev, key, RGB_GREEN, 0x20);
+            break;
+        case 2:
+            nt_set_colour_rgb(&neotrellis_dev, key, RGB_BLUE, 0x20);
+            break;
+        case 3:
+            nt_set_colour_rgb(&neotrellis_dev, key, RGB_YELLOW, 0x20);
+            break;
+        }
     }
-
-    }
-    nt_refresh(&neotrellis_dev);
+    nt_display(&neotrellis_dev);
     vTaskDelay(pdMS_TO_TICKS(2000));
 
     /* Clear colours for button press testing */
     for (uint8_t key = 0; key < NT_KEYS; key++)
     {
-        nt_set_colour(&neotrellis_dev, key, 255, 255, 255, 32);
+        nt_set_colour_rgb(&neotrellis_dev, key, RGB_WHITE, 0x20);
     }
-    nt_refresh(&neotrellis_dev);
-
+    nt_display(&neotrellis_dev);
 }
 
 /**
@@ -106,8 +113,8 @@ void app_main(void)
     }
 
     /* Register the key events we're interested in */
-    ret = nt_enable_all_event(&neotrellis_dev,KeyRise);
-    ret = nt_enable_all_event(&neotrellis_dev,KeyFall);
+    ret = nt_enable_all_event(&neotrellis_dev, KeyReleased);
+    ret = nt_enable_all_event(&neotrellis_dev, KeyPressed);
 
     /* Set the backlighting */
     set_colours();
@@ -125,22 +132,22 @@ void app_main(void)
             ESP_LOGI(TAG, "Received %d events", event_count);
             for (int i = 0; i < event_count; i++)
             {
+                uint8_t key = SEESAW_KEY_TO_TRELLIS(events[i].bit.key);
+
                 ESP_LOGI(TAG, "Raw event[%d]: seesaw key:%d, trellis key: %d, edge: %d",
-                         i, events[i].bit.num, FROM_SEESAW_KEY(events[i].bit.num), events[i].bit.edge);                         
-                
-                if(events[i].bit.edge == KeyRise)
-                {
-                    /* Purple key press*/
-                    nt_set_colour(&neotrellis_dev, FROM_SEESAW_KEY(events[i].bit.num),128,0,128,64);                    
+                         i, key, SEESAW_KEY_TO_TRELLIS(key), events[i].bit.edge);
+
+                if (events[i].bit.edge == KeyReleased)
+                {                    
+                    nt_set_colour_rgb(&neotrellis_dev, key, RGB_PURPLE, 0x20);
                 }
-                else
-                {
-                    /* Back to white on release */
-                    nt_set_colour(&neotrellis_dev, FROM_SEESAW_KEY(events[i].bit.num),255,255,255,15);                    
-                }               
+                else if (events[i].bit.edge == KeyPressed)
+                {                 
+                    nt_set_colour_rgb(&neotrellis_dev, key, RGB_WHITE, 0x20);
+                }
             }
 
-            nt_refresh(&neotrellis_dev);
+            nt_display(&neotrellis_dev);
         }
 
         vTaskDelay(pdMS_TO_TICKS(10));
