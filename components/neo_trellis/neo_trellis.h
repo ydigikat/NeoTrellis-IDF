@@ -32,7 +32,7 @@
 /*
  * The AdaFruit SeeSaw is a board that provides a consolidated I2C access to a set
  * of configurable IO.  Configuartion and peripheral implementation is provided
- * by the onboard MCU, in this case an ATSAMD09 8-bit MCU.
+ * by the onboard MCU, in this case an ATSAMD09 32-bit MCU.
  */
 #define SS_ADDRESS (0x2E) /* The NeoTrellis default I2C address */
 
